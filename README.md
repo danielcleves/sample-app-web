@@ -103,6 +103,89 @@ Running on Sauce Labs uses Environment Variables to authenticate credentials. Yo
 
 > Make sure you've added the `SAUCE_USERNAME` and `SAUCE_ACCESS_KEY` variables to your environment variables.
 
+### Playwright end-to-end suite (quality-engineering exam)
+
+This fork adds a [Playwright Test](https://playwright.dev/) suite under `e2e/` that covers
+three non-authentication functionalities of the store: **product catalog**, **shopping cart**
+and **checkout**. Login is only a precondition: it runs once in the `setup` project and the
+resulting storage state (cookie + `localStorage`) is reused by every spec.
+
+#### Requirements
+
+- Node.js `>=24.9.0` (see [Requirements](#requirements))
+- Chromium, installed by Playwright
+
+#### Install
+
+    npm ci
+    npx playwright install chromium
+
+#### Run
+
+    npm start                       # http://localhost:3000 (or let Playwright start it)
+    npm run test:e2e                # full suite: 11 passed, 6 failed by design
+    npm run test:e2e:regression     # excludes the @known-defect tests (green run)
+    npm run test:e2e:report         # open the HTML report
+
+The `webServer` option in `playwright.config.ts` starts the Vite dev server automatically when
+it is not already running (timeout: 120 s). Set `BASE_URL` to target another environment.
+
+#### Layout
+
+    playwright.config.ts          # projects, reporters, data-test id attribute, web server
+    e2e/
+      fixtures/test.ts            # page-object fixtures + evidence/annotation helpers
+      pages/                      # InventoryPage, CartPage, CheckoutPage (BasePage header)
+      support/                    # users, catalog data and expected totals
+      tests/
+        auth.setup.ts             # logs in standard_user and problem_user once
+        catalog.spec.ts           # TC-CAT-001..003
+        cart.spec.ts              # TC-CAR-001..003 (BVA: 0/1/6 items)
+        checkout.spec.ts          # TC-CHK-001..004 (decision table, whitespace, white-box)
+        white-box.spec.ts         # branch coverage of the ShoppingCart module
+        known-defects.spec.ts     # extra problem_user findings (BUG-05, BUG-06)
+
+#### Locators, actions and assertions
+
+- The application exposes `data-test` attributes; `use.testIdAttribute` is configured once in
+  the config, so specs use `getByTestId()` instead of CSS/XPath.
+- Actions are driven through page objects (`InventoryPage.addToCart`, `CartPage.checkout`, ...).
+- Assertions are web-first (`toBeVisible`, `toHaveText`, `toHaveCount`, `toHaveURL`) and each
+  one maps to a concrete expected result of its test case.
+- Authentication is never asserted: it is a fixture of the suite.
+
+#### Tags
+
+| Tag | Meaning |
+| --- | --- |
+| `@smoke` | Critical happy paths |
+| `@regression` | Broader functional coverage |
+| `@known-defect` | Reproduces a documented defect, so it is expected to fail |
+
+#### Expected results and defect traceability
+
+The full run reports **11 passed and 6 failed**. The six failures are intentional: each one
+reproduces a real defect that is documented in the course report.
+
+| Test | Defect | Observed behaviour |
+| --- | --- | --- |
+| `TC-CAT-003` | BUG-01 | `problem_user`: changing the sort option has no effect |
+| `TC-CAR-003c` | BUG-02 | An empty cart can start and finish a $0.00 order |
+| `TC-CHK-003` | BUG-03 | Required fields accept whitespace-only values |
+| `TC-CHK-004` | BUG-04 | `calculateOrderTotals` doubles every price for `problem_user` |
+| `EXTRA-BUG-05` | BUG-05 | `problem_user`: the Last Name field overwrites First Name |
+| `EXTRA-BUG-06` | BUG-06 | `problem_user`: products with an odd id cannot be added |
+
+`npm run test:e2e:regression` excludes `@known-defect`, which is what CI runs, so the pipeline
+stays green while the defects remain traceable.
+
+#### Notes
+
+- The white-box specs import the application modules served by Vite (`/src/utils/...`), so they
+  require the dev server (`npm start`), not a production build.
+- Evidence screenshots are attached to the HTML report and written to
+  `test-results/evidence/`.
+
 ### Visual Component Testing
 Components are visually tested with [Sauce Visual's Storybook integration](https://docs.saucelabs.com/visual-testing/integrations/storybook/) (`@saucelabs/visual-storybook`):
 
