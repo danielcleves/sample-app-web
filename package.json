@@ -30,6 +30,7 @@
     "@babel/preset-env": "^7.29.7",
     "@babel/preset-react": "^7.29.7",
     "@backtrace/javascript-cli": "^0.3.2",
+    "@playwright/test": "^1.65.0",
     "@saucelabs/visual-storybook": "^1.0.0",
     "@storybook/addon-docs": "^10.4.6",
     "@storybook/react-vite": "^10.4.6",
@@ -59,7 +60,11 @@
     "storybook": "storybook dev -p 6006",
     "build.storybook": "storybook build",
     "postbuild.storybook": "cd scripts && ./postbuild.sh",
-    "backtrace.sourcemaps": "backtrace-js run"
+    "backtrace.sourcemaps": "backtrace-js run",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:regression": "playwright test --grep-invert @known-defect",
+    "test:e2e:report": "playwright show-report"
   },
   "browserslist": {
     "production": [

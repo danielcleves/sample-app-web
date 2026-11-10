@@ -2,3 +2,10 @@
 node_modules/
 build/
 .npmrc
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/e2e/.auth/
+/evidence/
